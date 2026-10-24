@@ -3,10 +3,11 @@
 namespace App\Services\FinanceTelegram;
 
 use App\Models\User;
+use App\Services\FinanceTelegram\Contracts\AccountAccess;
 use Illuminate\Support\Facades\{Cache, DB, Http};
 use Illuminate\Validation\ValidationException;
 
-class AccountLink
+class AccountLink implements AccountAccess
 {
     public function resolve(string $telegramId): ?User
     {

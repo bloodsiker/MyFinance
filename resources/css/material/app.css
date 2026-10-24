@@ -199,10 +199,14 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .transaction-name { background: transparent; padding: 0; border: 0; color: #3e5f89; font-size: 12px; font-weight: 550; text-align: left; max-width: 190px; overflow-wrap: anywhere; }
 .transaction-name:hover { color: var(--primary); }
 .category-label { font-size: 11px; color: #6a82a0; }
+.category-filter-link { cursor: pointer; text-align: left; }
+.category-filter-link:hover:not(:disabled) { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.category-filter-link:disabled { cursor: default; }
 .amount-cell { white-space: nowrap; font-weight: 600; color: #435c7b; }
 .amount-cell small { font-size: 10px; font-weight: 400; color: #8092ab; margin-left: 4px; }
-.payment-label { background: #eff5fd; padding: 4px 7px; border-radius: 6px; font-size: 10px; color: #718caf; white-space: nowrap; }
-.author-cell span { display: block; color: #5f7896; }
+.payment-label { background: #eff5fd; padding: 4px 7px; border: 0; border-radius: 6px; font-size: 10px; color: #718caf; white-space: nowrap; }
+.author-cell span, .author-filter-link { display: block; color: #5f7896; }
+.author-filter-link { padding: 0; border: 0; background: transparent; font-size: inherit; text-align: left; cursor: pointer; }
 .author-cell time { display: block; color: #8b9cb3; font-size: 10px; white-space: nowrap; margin-top: 3px; }
 .row-actions { display: flex; gap: 1px; }
 .row-actions .icon-button { width: 29px; height: 29px; padding: 7px; }
@@ -436,8 +440,9 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .month-transaction-title { display: block; text-align: left; border: 0; background: transparent; padding: 0; font-size: 14px; font-weight: 600; color: #2b4f7b; line-height: 1.55; overflow-wrap: anywhere; }
 .month-transaction-title:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
 .month-transaction-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
-.month-category { background: #e4eefb; color: #4f719b; padding: 3px 8px; border-radius: 7px; font-size: 11px; }
-.month-payment { color: #758aa5; font-size: 11px; }
+.month-category { background: #e4eefb; color: #4f719b; padding: 3px 8px; border: 0; border-radius: 7px; font-size: 11px; }
+.month-payment { padding: 0; border: 0; background: transparent; color: #758aa5; font-size: 11px; }
+.month-transaction-author .author-filter-link { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
 .month-transaction-author { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 11px; color: #7a8da6; margin-top: 8px; }
 .month-transaction-end { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
 .month-transaction-amount { font-size: 17px; font-weight: 600; color: #315985; letter-spacing: -.35px; font-variant-numeric: tabular-nums; white-space: nowrap; }

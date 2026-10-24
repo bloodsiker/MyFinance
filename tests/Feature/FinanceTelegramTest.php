@@ -289,4 +289,48 @@ class FinanceTelegramTest extends TestCase
         $this->assertStringNotContainsString('хлибна', $today['text']);
     }
 
+    public function test_command_failure_rolls_back_expense_state_and_processed_update(): void
+    {
+        $strategy = new class((int) $this->month->id, (int) $this->category->id) implements \App\Services\FinanceTelegram\Contracts\CommandStrategy {
+            public function __construct(private int $monthId, private int $categoryId)
+            {
+            }
+
+            public function supports(\App\Services\FinanceTelegram\Data\CommandContext $context): bool
+            {
+                return $context->update->isAction('fail');
+            }
+
+            public function handle(\App\Services\FinanceTelegram\Data\CommandContext $context): \App\Services\FinanceTelegram\Data\Reply
+            {
+                Transaction::create(['month_id' => $this->monthId, 'category_id' => $this->categoryId, 'user_id' => $context->user->id, 'title' => 'Must roll back', 'amount' => 100, 'type' => 'card']);
+                $context->conversation->beginExpense($this->monthId);
+                throw new \RuntimeException('Command failed');
+            }
+        };
+        $this->app->instance('telegram.failing-test-command', $strategy);
+        $this->app->tag('telegram.failing-test-command', \App\Providers\FinanceTelegramServiceProvider::STRATEGIES);
+        $this->withHeader('X-Telegram-Bot-Api-Secret-Token', 'test-secret')
+            ->postJson('/telegram/webhook', $this->update('/fail'))->assertStatus(500);
+        $this->assertDatabaseCount('transactions', 0);
+        $this->assertDatabaseCount('finance_telegram_updates', 0);
+        $this->assertDatabaseCount('finance_telegram_chats', 0);
+        Http::assertNothingSent();
+    }
+
+    public function test_deployment_preserves_an_already_started_expense_dialog(): void
+    {
+        $flow = '0123456789abcdef';
+        DB::table('finance_telegram_chats')->insert([
+            'chat_id' => 123456, 'user_id' => $this->user->id,
+            'state' => json_encode(['month_id' => $this->month->id, 'category_id' => $this->category->id, 'title' => 'Existing draft', 'step' => 'amount', 'flow' => $flow, 'expires' => time() + 600]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->runUpdate($this->update('45,90'));
+        $this->runUpdate($this->update('', 'pay:'.$flow.':cash'));
+        $this->runUpdate($this->update('', 'save:'.$flow));
+        $this->assertDatabaseCount('transactions', 1);
+        $this->assertDatabaseHas('transactions', ['title' => 'Existing draft', 'amount' => 45.9, 'type' => 'cash', 'user_id' => $this->user->id]);
+    }
+
 }
