@@ -198,11 +198,11 @@ class FinanceTelegramTest extends TestCase
         $this->assertSame('stats', $reply['buttons'][0][0]['callback_data']);
     }
 
-    public function test_today_uses_kyiv_day_boundaries_and_includes_correct_totals(): void
+    public function test_today_uses_cabinet_day_boundaries_despite_legacy_telegram_timezone(): void
     {
         config(['finance-telegram.timezone' => 'Europe/Kyiv', 'app.timezone' => 'UTC']);
         $this->travelTo(\Carbon\Carbon::parse('2026-10-24 10:00:00', 'UTC'));
-        foreach ([['Before', '2026-10-23 20:59:59', 999], ['DayStart', '2026-10-23 21:00:00', 100], ['DayEnd', '2026-10-24 20:59:59', 200], ['Tomorrow', '2026-10-24 21:00:00', 999]] as [$title, $date, $amount]) {
+        foreach ([['Before', '2026-10-23 23:59:59', 999], ['DayStart', '2026-10-24 00:00:00', 100], ['DayEnd', '2026-10-24 23:59:59', 200], ['Tomorrow', '2026-10-25 00:00:00', 999]] as [$title, $date, $amount]) {
             Transaction::create(['month_id' => $this->month->id, 'category_id' => $this->category->id, 'user_id' => $this->user->id, 'title' => $title, 'created_at' => $date, 'amount' => $amount, 'type' => 'card']);
         }
         $this->runUpdate($this->update('/today'));
@@ -272,6 +272,21 @@ class FinanceTelegramTest extends TestCase
         $this->runUpdate($this->update('❌ Скасувати'));
         $cancel = json_decode(DB::table('finance_telegram_updates')->where('update_id', 4)->value('reply'), true);
         $this->assertArrayHasKey('keyboard', $cancel);
+    }
+
+    public function test_original_cabinet_date_is_shown_in_bot_and_not_counted_as_today(): void
+    {
+        config(['app.timezone' => 'UTC', 'finance-telegram.timezone' => 'Europe/Kyiv']);
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-24 12:00:00', 'UTC'));
+        Transaction::create(['month_id' => $this->month->id, 'category_id' => $this->category->id, 'user_id' => $this->user->id, 'title' => 'хлибна', 'amount' => 251, 'type' => 'card', 'created_at' => '2026-10-23 21:24:00']);
+        $this->runUpdate($this->update('/transactions'));
+        $history = json_decode(DB::table('finance_telegram_updates')->where('update_id', 1)->value('reply'), true);
+        $this->assertStringContainsString('23.10.2026 21:24', $history['text']);
+        $this->assertStringNotContainsString('24.10.2026 00:24', $history['text']);
+        $this->runUpdate($this->update('/today'));
+        $today = json_decode(DB::table('finance_telegram_updates')->where('update_id', 2)->value('reply'), true);
+        $this->assertStringContainsString('Транзакцій: 0', $today['text']);
+        $this->assertStringNotContainsString('хлибна', $today['text']);
     }
 
 }

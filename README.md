@@ -197,8 +197,8 @@ docker compose exec php-www php artisan finance:telegram menu
 ```
 
 `/today` показує кількість і суму витрат за поточний день, суми за категоріями
-та останні 10 транзакцій. Використовується `FINANCE_TELEGRAM_TIMEZONE` (типово
-`Europe/Kyiv`), із переведенням меж дня до часового поясу БД/застосунку.
+та останні 10 транзакцій. День визначається в часовому поясі кабінету `app.timezone` (UTC),
+без окремого зсуву для Telegram.
 Цей підсумок не обмежується місяцем, вибраним через `/month`.
 
 `/cabinet` і кнопка «Відкрити кабінет» використовують `FINANCE_TELEGRAM_CABINET_URL`
@@ -206,7 +206,6 @@ docker compose exec php-www php artisan finance:telegram menu
 
 ```dotenv
 FINANCE_TELEGRAM_CABINET_URL=https://finance.example.com
-FINANCE_TELEGRAM_TIMEZONE=Europe/Kyiv
 ```
 
 Для localhost/локальних адрес бот показує адресу текстом і пояснює обмеження,
@@ -230,6 +229,7 @@ Polling не допускає другого одночасного процес
 
 Дати транзакцій у БД залишаються в `app.timezone` (UTC). API повертає
 `created_at` як ISO 8601 з явним зсувом і `created_at_local` для форми редагування.
-Кабінет і бот відображають їх у `FINANCE_TELEGRAM_TIMEZONE` (типово Europe/Kyiv);
-локальний час із форми перетворюється в UTC під час збереження. Існуючі записи
+Кабінет і бот використовують однаковий `app.timezone` (UTC). Час запису
+показується як у початковому кабінеті, без додавання трьох годин; форма зберігає
+введені дату та час без зсуву. Старе `FINANCE_TELEGRAM_TIMEZONE` не використовується. Існуючі записи
 автоматично не зсуваються й не переписуються.

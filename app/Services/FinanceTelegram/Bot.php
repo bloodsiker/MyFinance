@@ -195,7 +195,7 @@ class Bot
         foreach ($items as $i => $row) {
             $lines[] = (($page - 1) * 10 + $i + 1).'. '.mb_strimwidth($row->title, 0, 90, '…').' — '.$this->money($row->amount).' грн';
             $lines[] = mb_strimwidth(optional($row->category)->name ?? 'Без категорії', 0, 40, '…').' · '.($row->type === 'card' ? 'Картка' : 'Готівка');
-            $lines[] = $row->created_at->copy()->setTimezone(config('finance-telegram.timezone', 'Europe/Kyiv'))->format('d.m.Y H:i').' · '.mb_strimwidth(optional($row->user)->name ?? '—', 0, 40, '…');
+            $lines[] = $row->created_at->copy()->setTimezone(config('app.timezone', 'UTC'))->format('d.m.Y H:i').' · '.mb_strimwidth(optional($row->user)->name ?? '—', 0, 40, '…');
             $lines[] = '';
         }
         if (!$total) $lines[] = 'У цьому місяці ще немає транзакцій.';
@@ -211,7 +211,7 @@ class Bot
 
     private function today(): array
     {
-        $timezone = config('finance-telegram.timezone', 'Europe/Kyiv');
+        $timezone = config('app.timezone', 'UTC');
         $day = Carbon::now($timezone)->startOfDay();
         $start = $day->copy()->setTimezone(config('app.timezone'));
         $end = $day->copy()->addDay()->setTimezone(config('app.timezone'));

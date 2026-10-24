@@ -178,7 +178,7 @@ class MaterialCabinetTest extends TestCase
         }
     }
 
-    public function test_transaction_dates_are_explicit_utc_with_kyiv_edit_values(): void
+    public function test_transaction_dates_keep_original_clock_values_when_displayed_and_saved(): void
     {
         config(['app.timezone' => 'UTC', 'finance-telegram.timezone' => 'Europe/Kyiv']);
         $user = $this->user();
@@ -188,14 +188,14 @@ class MaterialCabinetTest extends TestCase
         $row = Transaction::create(['month_id' => $month->id, 'category_id' => $category->id, 'user_id' => $user->id, 'title' => 'хлибна', 'amount' => 251, 'type' => 'card', 'created_at' => '2026-10-23 21:24:00']);
         $this->getJson('/cabinet-api/data?month_id='.$month->id)->assertOk()
             ->assertJsonPath('transactions.items.0.created_at', '2026-10-23T21:24:00+00:00')
-            ->assertJsonPath('transactions.items.0.created_at_local', '2026-10-24T00:24');
-        $payload = ['month_id' => $month->id, 'category_id' => $category->id, 'title' => 'хлибна', 'amount' => 251, 'type' => 'card', 'created_at' => '2026-10-24T00:24'];
+            ->assertJsonPath('transactions.items.0.created_at_local', '2026-10-23T21:24');
+        $payload = ['month_id' => $month->id, 'category_id' => $category->id, 'title' => 'хлибна', 'amount' => 251, 'type' => 'card', 'created_at' => '2026-10-23T21:24'];
         $this->putJson('/cabinet-api/transactions/'.$row->id, $payload)->assertOk();
         $this->assertDatabaseHas('transactions', ['id' => $row->id, 'created_at' => '2026-10-23 21:24:00']);
         $payload['title'] = 'Winter';
         $payload['created_at'] = '2026-12-24T00:24';
         $this->postJson('/cabinet-api/transactions', $payload)->assertOk();
-        $this->assertDatabaseHas('transactions', ['title' => 'Winter', 'created_at' => '2026-12-23 22:24:00']);
+        $this->assertDatabaseHas('transactions', ['title' => 'Winter', 'created_at' => '2026-12-24 00:24:00']);
     }
 
 }

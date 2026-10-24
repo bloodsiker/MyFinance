@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\{Category, Month, MonthCategory, Task, Transaction, User, Year};
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Auth, DB, Http};
 use Illuminate\Validation\Rule;
@@ -21,7 +20,7 @@ class FinanceCabinetController extends Controller
         return view('material.app', ['bootstrap' => [
             'base' => url('/'), 'api' => url('/cabinet-api'), 'csrf' => csrf_token(),
             'user' => $request->user() ? $request->user()->only(['id', 'name', 'email']) : null,
-            'timezone' => config('finance-telegram.timezone', 'Europe/Kyiv'),
+            'timezone' => config('app.timezone', 'UTC'),
             'resetToken' => $request->route('token'), 'email' => $request->query('email', ''),
         ]]);
     }
@@ -91,7 +90,7 @@ class FinanceCabinetController extends Controller
         return ['id' => $row->id, 'month_id' => $row->month_id, 'category_id' => $row->category_id,
             'user_id' => $row->user_id, 'title' => $row->title, 'amount' => (float) $row->amount,
             'type' => $row->type === 'card' ? 'card' : 'cash', 'created_at' => $row->created_at->toIso8601String(),
-            'created_at_local' => $row->created_at->copy()->setTimezone(config('finance-telegram.timezone', 'Europe/Kyiv'))->format('Y-m-d\TH:i'),
+            'created_at_local' => $row->created_at->copy()->setTimezone(config('app.timezone', 'UTC'))->format('Y-m-d\TH:i'),
             'category' => optional($row->category)->name, 'author' => optional($row->user)->name];
     }
 
@@ -141,8 +140,6 @@ class FinanceCabinetController extends Controller
         $data = $request->validate(['month_id' => 'required|integer|exists:months,id', 'category_id' => 'required|integer|exists:categories,id',
             'title' => 'required|string|max:255', 'amount' => 'required|numeric|min:0', 'type' => ['required', Rule::in(['card', 'cash'])],
             'created_at' => 'required|date_format:Y-m-d\TH:i']);
-        $data['created_at'] = Carbon::createFromFormat('!Y-m-d\TH:i', $data['created_at'], config('finance-telegram.timezone', 'Europe/Kyiv'))
-            ->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s');
         if ($id) {
             $transaction = Transaction::findOrFail($id);
             unset($data['month_id']); // Preserve the original month when editing.

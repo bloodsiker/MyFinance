@@ -66,7 +66,7 @@ test('the complete application and dialog templates compile with the pinned Vue 
 });
 
 
-test('transaction edit dates use Kyiv time independently of browser timezone', () => {
-    assert.equal(D.localTime(new Date('2026-10-23T21:24:00Z'), 'Europe/Kyiv'), '2026-10-24T00:24');
-    assert.equal(D.localTime(new Date('2026-12-23T22:24:00Z'), 'Europe/Kyiv'), '2026-12-24T00:24');
+test('transaction edit dates keep the original cabinet clock independently of browser timezone', () => {
+    assert.equal(D.localTime(new Date('2026-10-23T21:24:00Z'), 'UTC'), '2026-10-23T21:24');
+    assert.equal(D.localTime(new Date('2026-12-23T22:24:00Z'), 'UTC'), '2026-12-23T22:24');
 });
