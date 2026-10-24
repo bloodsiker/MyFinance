@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Request\LoginRequest;
-use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,13 +12,6 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function loginView()
-    {
-        return view('login/main', [
-            'layout' => 'login'
-        ]);
-    }
-
     /**
      * Authenticate login user.
      *
@@ -31,17 +23,11 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
 
         if (!Auth::attempt($credentials)) {
-            throw new \Exception('Wrong email or password.');
+            throw \Illuminate\Validation\ValidationException::withMessages(['email' => 'Неправильна пошта або пароль.']);
         }
 
-        return response()->json(['url' => Auth::user()->last_url ?: '/']);
-    }
-
-    public function forgotPassword()
-    {
-        return view('login/forgot-password', [
-            'layout' => 'login'
-        ]);
+        $request->session()->regenerate();
+        return response()->json(['url' => Auth::user()->last_url ?: url('/')]);
     }
 
     public function forgotPasswordSend(Request $request)
@@ -52,17 +38,13 @@ class AuthController extends Controller
             $request->only('email')
         );
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => __($status)], $status === Password::RESET_LINK_SENT ? 200 : 422);
+        }
+
         return $status === Password::RESET_LINK_SENT
             ? back()->with(['status' => __($status)])
             : back()->withErrors(['email' => __($status)]);
-    }
-
-    public function resetPassword($token)
-    {
-        return view('login/reset-password', [
-            'layout' => 'login',
-            'token' => $token
-        ]);
     }
 
     public function updatePassword(Request $request)
@@ -86,14 +68,13 @@ class AuthController extends Controller
             }
         );
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => __($status), 'url' => url('/login')], $status === Password::PASSWORD_RESET ? 200 : 422);
+        }
+
         return $status === Password::PASSWORD_RESET
             ? redirect()->route('login')->with('status', __($status))
             : back()->withErrors(['email' => [__($status)]]);
     }
 
-    public function logout()
-    {
-        Auth::logout();
-        return redirect('login');
-    }
 }

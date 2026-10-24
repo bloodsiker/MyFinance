@@ -24,6 +24,9 @@ class Authenticate
             }*/
             return $next($request);
         } else {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Потрібно увійти в кабінет.'], 401);
+            }
             return redirect('login');
         }
     }

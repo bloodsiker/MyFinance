@@ -40,6 +40,12 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    public function canManageUsers(): bool
+    {
+        // Administrators and the original owner can manage account links.
+        return in_array((int) $this->role_id, [2, 3], true) || (int) $this->id === (int) static::min('id');
+    }
+
     public function isAdmin()
     {
         return $this->role_id === 2;

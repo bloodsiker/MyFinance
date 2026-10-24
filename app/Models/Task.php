@@ -20,6 +20,11 @@ class Task extends Model
         'task_time' => 'datetime'
     ];
 
+    public function setTaskTimeAttribute($value)
+    {
+        $this->attributes['task_time'] = $value ? \Carbon\Carbon::parse($value)->format('H:i:s') : null;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
