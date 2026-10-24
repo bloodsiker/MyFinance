@@ -142,7 +142,7 @@
                 if(kind==='year')Object.assign(form,{year:new Date().getFullYear()});
                 if(kind==='category')Object.assign(form,{name:''},row);
                 if(kind==='userTelegram')Object.assign(form,{id:row.id,name:row.name,telegram_id:row.telegram_id||''});
-                if(kind==='transaction')Object.assign(form,{month_id:currentMonth.value?.id,category_id:state.budgets[0]?.category_id||'',title:'',amount:'',type:'card',created_at:D.localTime(new Date())},row);
+                if(kind==='transaction')Object.assign(form,{month_id:currentMonth.value?.id,category_id:state.budgets[0]?.category_id||'',title:'',amount:'',type:'card'},row,{created_at:row.id?row.created_at_local:D.localTime(new Date(),boot.timezone||'Europe/Kyiv')});
                 if(kind==='budget')Object.assign(form,{month_id:currentMonth.value?.id,category_id:'',budget:''},row);
                 if(kind==='task')Object.assign(form,{user_id:row.user_id||user.value.id,description:'',priority:'middle',task_date:selectedDate.value,task_time:''});
                 if(kind==='deleteTransaction'||kind==='deleteTask')Object.assign(form,row);
@@ -202,7 +202,7 @@
             onMounted(()=>{readLocation();load();if(!isAuth.value&&view.value.name==='exchange')loadRates();window.addEventListener('popstate',onPop);document.addEventListener('keydown',keydown);document.addEventListener('visibilitychange',refreshTelegramStatus);});
             onUnmounted(()=>{controller?.abort();analyticsController?.abort();clearTimeout(toastTimer);window.removeEventListener('popstate',onPop);document.removeEventListener('keydown',keydown);document.removeEventListener('visibilitychange',refreshTelegramStatus);document.body.classList.remove('drawer-open');});
             return {boot,user,view,state,loading,ready,saving,error,notice,drawer,account,drawerEl,menuEl,search,sort,categorySearch,userSearch,linking,members,filters,selectedDate,cursor,dialog,form,formError,analytics,analyticsLoading,auth,authError,authMessage,rates,rateBusy,rateError,exchange,nav,title,isAuth,activeNav,currentMonth,currentYear,months,periods,summary,remaining,categories,availableCategories,transactionCategories,calendar,calendarTitle,selectedDayTitle,completed,taskUsers,dialogTitle,
-                url,navigate,switchYear,load,applyFilters,resetFilters,page,openDialog,closeDialog,save,toggleTask,loadAnalytics,selectDay,shiftCalendar,tasksFor,priorityLabel,loadRates,recalculate,openTelegram,logout,submitAuth,money:D.money,progress:D.progress,today:D.dateKey(new Date()),dateLabel:value=>new Intl.DateTimeFormat('uk-UA',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value)),initial:computed(()=>(user.value?.name||user.value?.email||'F').charAt(0).toUpperCase())};
+                url,navigate,switchYear,load,applyFilters,resetFilters,page,openDialog,closeDialog,save,toggleTask,loadAnalytics,selectDay,shiftCalendar,tasksFor,priorityLabel,loadRates,recalculate,openTelegram,logout,submitAuth,money:D.money,progress:D.progress,today:D.dateKey(new Date()),dateLabel:value=>new Intl.DateTimeFormat('uk-UA',{timeZone:boot.timezone||'Europe/Kyiv',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value)),initial:computed(()=>(user.value?.name||user.value?.email||'F').charAt(0).toUpperCase())};
         },
         template: `
         <div v-if="isAuth" class="auth-page">

@@ -3,7 +3,12 @@
     'use strict';
     const money = value => new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
     const dateKey = value => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-    const localTime = value => `${dateKey(value)}T${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+    const localTime = (value, timezone) => {
+        if (!timezone) return `${dateKey(value)}T${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+        const parts = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(value);
+        const fields = Object.fromEntries(parts.map(part => [part.type, part.value]));
+        return `${fields.year}-${fields.month}-${fields.day}T${fields.hour}:${fields.minute}`;
+    };
     function calendar(cursor) {
         const start = new Date(cursor.getFullYear(), cursor.getMonth(), 1, 12);
         start.setDate(start.getDate() - (start.getDay() + 6) % 7);
