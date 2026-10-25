@@ -49,11 +49,35 @@ test('all currency inputs can drive conversion; invalid rates never produce Infi
 });
 test('the complete application and dialog templates compile with the pinned Vue runtime', () => {
     const errors = [];
+    const template = (name, id) => fs.readFileSync(path.join(root, `resources/views/material/templates/${name}.blade.php`), 'utf8')
+        .replace(/^@verbatim\s*/, '')
+        .replace(/\s*@endverbatim\s*$/, '')
+        .replace(new RegExp(`^<template id="${id}">`), '')
+        .replace(/<\/template>\s*$/, '');
+    const pageTemplate = (name, id) => fs.readFileSync(path.join(root, `resources/views/material/templates/pages/${name}.blade.php`), 'utf8')
+        .replace(/^@verbatim\s*/, '')
+        .replace(/\s*@endverbatim\s*$/, '')
+        .replace(new RegExp(`^<template id="${id}">`), '')
+        .replace(/<\/template>\s*$/, '');
+    const templates = {
+        'finance-auth-template': template('auth', 'finance-auth-template'),
+        'finance-workspace-template': template('workspace', 'finance-workspace-template'),
+        'finance-overview-template': pageTemplate('overview', 'finance-overview-template'),
+        'finance-transactions-template': pageTemplate('transactions', 'finance-transactions-template'),
+        'finance-users-template': pageTemplate('users', 'finance-users-template'),
+        'finance-categories-template': pageTemplate('categories', 'finance-categories-template'),
+        'finance-tasks-template': pageTemplate('tasks', 'finance-tasks-template'),
+        'finance-exchange-template': pageTemplate('exchange', 'finance-exchange-template'),
+    };
     const sandbox = { FinanceDomain: D, console: { ...console, error: error => errors.push(error) },
-        document: { createElement: () => ({}), getElementById: () => ({ textContent: JSON.stringify({base:'https://finance.test',user:null}) }) },
+        document: { createElement: () => ({}), getElementById: id => id === 'finance-bootstrap'
+            ? { textContent: JSON.stringify({base:'https://finance.test',user:null}) }
+            : { innerHTML: templates[id] || '' } },
     };
     vm.createContext(sandbox);
     vm.runInContext(fs.readFileSync(path.join(root, 'public/material/vue.global.prod.js'), 'utf8'), sandbox);
+    vm.runInContext(fs.readFileSync(path.join(root, 'public/material/application.js'), 'utf8'), sandbox);
+    vm.runInContext(fs.readFileSync(path.join(root, 'public/material/domain.js'), 'utf8'), sandbox);
     let app;
     sandbox.Vue.createApp = component => ({ mount: () => { app = component; } });
     vm.runInContext(fs.readFileSync(path.join(root, 'resources/js/material/app.js'), 'utf8'), sandbox);
