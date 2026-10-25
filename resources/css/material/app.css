@@ -559,6 +559,11 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .telegram-status.connected { background: #e8f4ef; color: #45816b; }
 .telegram-status strong { display: block; font-size: 12px; font-weight: 550; }
 .telegram-status span { display: block; font-size: 11px; margin-top: 5px; overflow-wrap: anywhere; }
+.telegram-notifications { display: flex; align-items: flex-start; gap: 11px; margin: -7px 0 18px; padding: 13px 14px; border: 1px solid #dfe9f6; border-radius: 12px; background: #fff; cursor: pointer; }
+.telegram-notifications input { margin: 3px 0 0; accent-color: var(--primary); flex: 0 0 auto; }
+.telegram-notifications strong, .telegram-notifications small { display: block; }
+.telegram-notifications strong { font-size: 12px; color: #425f86; font-weight: 550; }
+.telegram-notifications small { margin-top: 3px; color: #8193aa; font-size: 10px; }
 .user-card-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .user-card-actions .button { font-size: 11px; padding: 10px 14px; }
 .users-help { font-size: 12px; color: #7186a3; line-height: 1.8; margin-top: 24px; }

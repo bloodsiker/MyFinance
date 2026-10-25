@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\{Category, Month, MonthCategory, Task, Transaction, User, Year};
+use App\Services\FinanceTelegram\TelegramTransactionNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Auth, DB, Http};
 use Illuminate\Validation\Rule;
 
 class FinanceCabinetController extends Controller
 {
+    public function __construct(private readonly TelegramTransactionNotifier $telegramNotifications)
+    {
+    }
+
     private const MONTH_NAMES = [
         1 => 'Січень', 2 => 'Лютий', 3 => 'Березень', 4 => 'Квітень',
         5 => 'Травень', 6 => 'Червень', 7 => 'Липень', 8 => 'Серпень',
@@ -145,7 +150,8 @@ class FinanceCabinetController extends Controller
             unset($data['month_id']); // Preserve the original month when editing.
             $transaction->fill($data)->save();
         } else {
-            Transaction::create($data + ['user_id' => $request->user()->id]);
+            $transaction = Transaction::create($data + ['user_id' => $request->user()->id]);
+            $this->telegramNotifications->notifySubscribers($transaction);
         }
         return response()->json(['message' => $id ? 'Транзакцію оновлено' : 'Транзакцію додано']);
     }

@@ -14,9 +14,15 @@ class CabinetUsersController extends Controller
     {
         $query = User::orderBy('name');
         if (!$request->user()->canManageUsers()) $query->whereKey($request->user()->id);
-        return response()->json(['users' => $query->get()->map(fn ($user) => [
+        $users = $query->get();
+        $connectedUserIds = DB::table('finance_telegram_chats')->whereIn('user_id', $users->modelKeys())
+            ->distinct()->pluck('user_id')->map(fn ($id) => (string) $id)->all();
+
+        return response()->json(['users' => $users->map(fn ($user) => [
             'id' => $user->id, 'name' => $user->name, 'email' => $user->email,
             'telegram_id' => $links->displayId($user), 'is_self' => $user->id === $request->user()->id,
+            'telegram_notifications_enabled' => (bool) $user->telegram_notifications_enabled,
+            'telegram_chat_connected' => in_array((string) $user->id, $connectedUserIds, true),
         ]), 'can_manage_users' => $request->user()->canManageUsers()]);
     }
 
@@ -46,5 +52,24 @@ class CabinetUsersController extends Controller
     public function link(Request $request, int $id, AccountLink $links)
     {
         return response()->json($links->issue($this->target($request, $id)));
+    }
+
+    public function telegramNotifications(Request $request, int $id)
+    {
+        $target = $this->target($request, $id);
+        $data = $request->validate(['enabled' => 'required|boolean']);
+
+        if ($data['enabled'] && !DB::table('finance_telegram_chats')->where('user_id', $target->id)->exists()) {
+            throw ValidationException::withMessages([
+                'enabled' => 'Спершу відкрийте бота й натисніть «Старт», щоб під’єднати чат.',
+            ]);
+        }
+
+        $target->forceFill(['telegram_notifications_enabled' => (bool) $data['enabled']])->save();
+
+        return response()->json([
+            'message' => $data['enabled'] ? 'Сповіщення про транзакції увімкнено' : 'Сповіщення вимкнено',
+            'enabled' => (bool) $target->telegram_notifications_enabled,
+        ]);
     }
 }

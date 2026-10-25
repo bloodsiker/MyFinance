@@ -9,7 +9,8 @@ use App\Models\MonthCategory;
 use App\Models\Transaction;
 use App\Services\FinanceTelegram\Contracts\ConversationStrategy;
 use App\Services\FinanceTelegram\Data\{CommandContext, Conversation, ExpenseStage, Reply};
-use App\Services\FinanceTelegram\{MainMenu, MonthSelector, TextFormatter};
+use App\Services\FinanceTelegram\{MainMenu, MonthSelector, TelegramTransactionNotifier, TextFormatter};
+use Illuminate\Support\Facades\DB;
 
 final class ExpenseStrategy implements ConversationStrategy
 {
@@ -20,6 +21,7 @@ final class ExpenseStrategy implements ConversationStrategy
         private readonly MainMenu $menu,
         private readonly MonthSelector $months,
         private readonly TextFormatter $formatter,
+        private readonly TelegramTransactionNotifier $transactionNotifier,
     ) {
     }
 
@@ -159,7 +161,7 @@ final class ExpenseStrategy implements ConversationStrategy
         if (!MonthCategory::where('month_id', $conversation->monthId())->where('category_id', $conversation->value('category_id'))->exists()) {
             return $this->unavailable($conversation);
         }
-        Transaction::create([
+        $transaction = Transaction::create([
             'month_id' => $conversation->monthId(),
             'category_id' => $conversation->value('category_id'),
             'user_id' => $context->user->id,
@@ -168,6 +170,7 @@ final class ExpenseStrategy implements ConversationStrategy
             'type' => $conversation->value('type'),
             'created_at' => now(),
         ]);
+        DB::afterCommit(fn () => $this->transactionNotifier->notifySubscribers($transaction));
         $conversation->reset();
 
         return $this->menu->reply('Транзакцію збережено. Вона вже доступна в кабінеті.');

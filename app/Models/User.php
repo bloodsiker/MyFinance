@@ -33,6 +33,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'telegram_notifications_enabled' => 'boolean',
     ];
 
     public function role()

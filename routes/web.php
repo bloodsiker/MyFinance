@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/data', [FinanceCabinetController::class, 'data']);
         Route::get('/users', [CabinetUsersController::class, 'index']);
         Route::put('/users/{id}/telegram', [CabinetUsersController::class, 'telegram'])->whereNumber('id');
+        Route::patch('/users/{id}/telegram-notifications', [CabinetUsersController::class, 'telegramNotifications'])->whereNumber('id');
         Route::post('/users/{id}/telegram-link', [CabinetUsersController::class, 'link'])->whereNumber('id');
         Route::post('/years', [FinanceCabinetController::class, 'year']);
         Route::post('/categories', [FinanceCabinetController::class, 'category']);
