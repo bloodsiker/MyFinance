@@ -23,14 +23,14 @@ final class Conversation
         $this->state = ['month_id' => $monthId ?? $this->monthId()];
     }
 
-    public function beginExpense(int $monthId): void
+    public function beginExpense(?int $monthId = null): void
     {
-        $this->state = [
+        $this->state = array_filter([
             'month_id' => $monthId,
             'flow' => bin2hex(random_bytes(8)),
-            'step' => ExpenseStage::Category->value,
+            'step' => ($monthId ? ExpenseStage::Category : ExpenseStage::Year)->value,
             'expires' => time() + 1800,
-        ];
+        ], static fn (mixed $value): bool => $value !== null);
     }
 
     public function stage(): ?ExpenseStage

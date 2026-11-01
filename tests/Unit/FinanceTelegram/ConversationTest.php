@@ -39,6 +39,15 @@ class ConversationTest extends TestCase
         $this->assertSame(['month_id' => 47], $conversation->toArray());
     }
 
+    public function test_new_expense_without_a_preselected_month_starts_with_year_selection(): void
+    {
+        $conversation = new Conversation(['month_id' => 46]);
+        $conversation->beginExpense();
+
+        $this->assertSame(ExpenseStage::Year, $conversation->stage());
+        $this->assertNull($conversation->monthId());
+    }
+
     public function test_reply_transformations_do_not_mutate_cached_payload(): void
     {
         $payload = ['text' => 'Existing reply', 'buttons' => [[['text' => 'Next', 'callback_data' => 'next']]]];

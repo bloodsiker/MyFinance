@@ -47,10 +47,13 @@ class FinanceTelegramTest extends TestCase
         return json_decode(DB::table('finance_telegram_chats')->where('chat_id', 123456)->value('state'), true)['flow'];
     }
 
-    private function draft(string $amount = '250,50'): string
+    private function draft(string $amount = '250,50', ?Month $month = null): string
     {
+        $month ??= $this->month;
         $this->runUpdate($this->update('/add'));
         $flow = $this->flow();
+        $this->runUpdate($this->update('', 'year:'.$flow.':'.$month->year_id));
+        $this->runUpdate($this->update('', 'month:'.$flow.':'.$month->id));
         $this->runUpdate($this->update('', 'category:'.$flow.':'.$this->category->id));
         $this->runUpdate($this->update('Покупка продуктів'));
         $this->runUpdate($this->update($amount));
@@ -115,6 +118,8 @@ class FinanceTelegramTest extends TestCase
     {
         $this->runUpdate($this->update('/add'));
         $flow = $this->flow();
+        $this->runUpdate($this->update('', 'year:'.$flow.':'.$this->month->year_id));
+        $this->runUpdate($this->update('', 'month:'.$flow.':'.$this->month->id));
         $this->runUpdate($this->update('', 'category:'.$flow.':'.$this->category->id));
         $this->runUpdate($this->update('Test'));
         foreach (['-5', '0', '1.123', '1e6', 'abc'] as $amount) $this->runUpdate($this->update($amount));
@@ -129,12 +134,33 @@ class FinanceTelegramTest extends TestCase
 
     public function test_selecting_month_controls_expense_destination(): void
     {
-        $other = Month::create(['year_id' => $this->month->year_id, 'name' => 'Інший місяць', 'number' => '1']);
+        $year = Year::create(['name' => (string) (now()->year - 1)]);
+        $other = Month::create(['year_id' => $year->id, 'name' => 'Інший місяць', 'number' => '1']);
         MonthCategory::create(['month_id' => $other->id, 'category_id' => $this->category->id, 'budget' => 500]);
-        $this->runUpdate($this->update('', 'month:'.$other->id));
-        $flow = $this->draft('40');
+        $flow = $this->draft('40', $other);
         $this->runUpdate($this->update('', 'save:'.$flow));
         $this->assertDatabaseHas('transactions', ['month_id' => $other->id, 'amount' => 40]);
+    }
+
+    public function test_adding_expense_asks_for_year_and_month_before_category(): void
+    {
+        $this->runUpdate($this->update('/add'));
+        $state = json_decode(DB::table('finance_telegram_chats')->where('chat_id', 123456)->value('state'), true);
+        $flow = $state['flow'];
+        $this->assertSame('year', $state['step']);
+
+        $years = json_decode(DB::table('finance_telegram_updates')->where('update_id', 1)->value('reply'), true);
+        $this->assertStringContainsString('Оберіть рік транзакції', $years['text']);
+
+        $this->runUpdate($this->update('', 'year:'.$flow.':'.$this->month->year_id));
+        $state = json_decode(DB::table('finance_telegram_chats')->where('chat_id', 123456)->value('state'), true);
+        $this->assertSame('month', $state['step']);
+        $this->assertSame($this->month->year_id, $state['year_id']);
+
+        $this->runUpdate($this->update('', 'month:'.$flow.':'.$this->month->id));
+        $state = json_decode(DB::table('finance_telegram_chats')->where('chat_id', 123456)->value('state'), true);
+        $this->assertSame('category', $state['step']);
+        $this->assertSame($this->month->id, $state['month_id']);
     }
     public function test_delivery_failure_and_retry_preserve_a_single_saved_expense(): void
     {

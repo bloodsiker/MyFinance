@@ -7,9 +7,30 @@ namespace App\Services\FinanceTelegram;
 use App\Models\Month;
 use App\Models\Year;
 use App\Services\FinanceTelegram\Data\Conversation;
+use Illuminate\Database\Eloquent\Collection;
 
 final class MonthSelector
 {
+    public function years(): Collection
+    {
+        return Year::orderByRaw('CAST(name AS UNSIGNED) DESC')->get();
+    }
+
+    public function year(int $yearId): ?Year
+    {
+        return Year::find($yearId);
+    }
+
+    public function monthsForYear(int $yearId): Collection
+    {
+        return Month::where('year_id', $yearId)->orderByRaw('CAST(number AS UNSIGNED)')->get();
+    }
+
+    public function monthForYear(int $monthId, int $yearId): ?Month
+    {
+        return Month::where('id', $monthId)->where('year_id', $yearId)->first();
+    }
+
     public function selected(Conversation $conversation): ?Month
     {
         return ($conversation->monthId() ? Month::find($conversation->monthId()) : null) ?? $this->current();

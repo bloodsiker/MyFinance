@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\FinanceTelegram\Strategies;
 
 use App\Models\Category;
+use App\Models\Month;
 use App\Models\MonthCategory;
 use App\Models\Transaction;
 use App\Services\FinanceTelegram\Contracts\ConversationStrategy;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ExpenseStrategy implements ConversationStrategy
 {
-    private const CALLBACK_PATTERN = '/^(category|pay|save):([a-f0-9]{16})(?::(.+))?$/';
+    private const CALLBACK_PATTERN = '/^(year|month|category|pay|save):([a-f0-9]{16})(?::(.+))?$/';
     private const CANCEL_BUTTON = [['text' => 'Скасувати', 'callback_data' => 'cancel']];
 
     public function __construct(
@@ -29,7 +30,9 @@ final class ExpenseStrategy implements ConversationStrategy
     {
         return $context->update->isAction('add')
             || (bool) preg_match(self::CALLBACK_PATTERN, $context->update->callback)
-            || ($context->update->callback === '' && in_array($context->conversation->stage(), [ExpenseStage::Description, ExpenseStage::Amount], true));
+            || ($context->update->callback === '' && in_array($context->conversation->stage(), [
+                ExpenseStage::Year, ExpenseStage::Month, ExpenseStage::Description, ExpenseStage::Amount,
+            ], true));
     }
 
     public function handle(CommandContext $context): Reply
@@ -45,16 +48,21 @@ final class ExpenseStrategy implements ConversationStrategy
             $action = $parts[1];
             $argument = $parts[3] ?? null;
             $expectedStage = match ($action) {
+                'year' => ExpenseStage::Year,
+                'month' => ExpenseStage::Month,
                 'category' => ExpenseStage::Category,
                 'pay' => ExpenseStage::Payment,
                 'save' => ExpenseStage::Confirmation,
             };
             if ($context->conversation->stage() !== $expectedStage
+                || (in_array($action, ['year', 'month', 'category'], true) && (!is_string($argument) || !ctype_digit($argument)))
                 || ($action === 'pay' && !in_array($argument, ['card', 'cash'], true))) {
                 return $this->menu->reply('Цей крок уже завершено. Продовжіть поточне додавання або натисніть /cancel.');
             }
 
             return match ($action) {
+                'year' => $this->year($context, (int) $argument),
+                'month' => $this->month($context, (int) $argument),
                 'category' => $this->category($context->conversation, $argument),
                 'pay' => $this->payment($context, $argument),
                 'save' => $this->save($context),
@@ -70,17 +78,70 @@ final class ExpenseStrategy implements ConversationStrategy
 
     private function start(CommandContext $context): Reply
     {
-        $month = $this->months->selected($context->conversation);
-        if (!$month) {
+        $context->conversation->beginExpense();
+        $years = $this->months->years();
+        if ($years->isEmpty()) {
+            $context->conversation->reset();
+
             return $this->menu->reply('Спочатку створіть рік у кабінеті.');
         }
+
+        $flow = $context->conversation->value('flow');
+        $buttons = $years->map(fn ($year): array => [
+            'text' => (string) $year->name,
+            'callback_data' => 'year:'.$flow.':'.$year->id,
+        ])->chunk(2)->map(fn ($chunk): array => $chunk->values()->all())->all();
+        $buttons[] = self::CANCEL_BUTTON;
+
+        return Reply::inline('Оберіть рік транзакції:', $buttons);
+    }
+
+    private function year(CommandContext $context, int $yearId): Reply
+    {
+        $year = $this->months->year($yearId);
+        if (!$year) {
+            return Reply::text('Цей рік недоступний. Оберіть рік зі списку.');
+        }
+
+        $months = $this->months->monthsForYear($yearId);
+        if ($months->isEmpty()) {
+            return Reply::text('У цьому році ще немає місяців. Оберіть інший рік або створіть місяці в кабінеті.');
+        }
+
+        $context->conversation->transition(ExpenseStage::Month, ['year_id' => $yearId]);
+        $flow = $context->conversation->value('flow');
+        $buttons = $months->map(fn (Month $month): array => [
+            'text' => $month->name,
+            'callback_data' => 'month:'.$flow.':'.$month->id,
+        ])->chunk(2)->map(fn ($chunk): array => $chunk->values()->all())->all();
+        $buttons[] = self::CANCEL_BUTTON;
+
+        return Reply::inline($year->name.' рік — оберіть місяць транзакції:', $buttons);
+    }
+
+    private function month(CommandContext $context, int $monthId): Reply
+    {
+        $yearId = (int) $context->conversation->value('year_id');
+        $month = $yearId ? $this->months->monthForYear($monthId, $yearId) : null;
+        if (!$month) {
+            return Reply::text('Цей місяць не належить обраному року. Оберіть місяць зі списку.');
+        }
+
+        $context->conversation->transition(ExpenseStage::Category, ['month_id' => (int) $month->id]);
+
+        return $this->categoryChoices($context->conversation, $month);
+    }
+
+    private function categoryChoices(Conversation $conversation, Month $month): Reply
+    {
         $categories = MonthCategory::with('category')->where('month_id', $month->id)->get();
         if ($categories->isEmpty()) {
+            $conversation->reset((int) $month->id);
+
             return $this->menu->reply('Додайте бюджет хоча б однієї категорії в цьому місяці через кабінет.');
         }
 
-        $context->conversation->beginExpense((int) $month->id);
-        $flow = $context->conversation->value('flow');
+        $flow = $conversation->value('flow');
         $buttons = $categories->filter(fn (MonthCategory $row): bool => $row->category !== null)
             ->map(fn (MonthCategory $row): array => [
                 'text' => $row->category->name,
