@@ -29,7 +29,12 @@ class DialogController {
             category_id: store.data.budgets[0]?.category_id || '',
             title: '', amount: '', type: 'card',
         }, row, { created_at: row.id ? row.created_at_local : this.domain.localTime(new Date(), this.bootstrap.timezone || 'UTC') });
-        if (kind === 'budget') Object.assign(store.form, { month_id: this.currentMonth()?.id, category_id: '', budget: '' }, row);
+        if (kind === 'budget') Object.assign(store.form, {
+            month_id: this.currentMonth()?.id,
+            category_id: '',
+            budget: '',
+            analytics_year_id: this.defaultAnalyticsYear()?.id || '',
+        }, row);
         if (kind === 'task') Object.assign(store.form, {
             user_id: row.user_id || store.user.value.id, description: '', priority: 'middle',
             task_date: store.selectedDate.value, task_time: '',
@@ -82,14 +87,15 @@ class DialogController {
         const requestId = ++this.analyticsSequence;
         this.analyticsAbortController?.abort();
         this.store.analytics.value = null;
-        if (this.store.dialog.value !== 'budget' || !this.store.form.category_id || !this.currentYear()) {
+        const yearId = Number(this.store.form.analytics_year_id);
+        if (this.store.dialog.value !== 'budget' || !this.store.form.category_id || !Number.isInteger(yearId) || yearId < 1) {
             this.store.analyticsLoading.value = false;
             return;
         }
         this.analyticsAbortController = new AbortController();
         this.store.analyticsLoading.value = true;
         try {
-            const params = new URLSearchParams({ year_id: this.currentYear().id, category_id: this.store.form.category_id });
+            const params = new URLSearchParams({ year_id: yearId, category_id: this.store.form.category_id });
             const result = await this.api.request(`analytics?${params}`, { signal: this.analyticsAbortController.signal });
             if (requestId === this.analyticsSequence) this.store.analytics.value = result.amount;
         } catch (error) {
@@ -99,6 +105,14 @@ class DialogController {
         } finally {
             if (requestId === this.analyticsSequence) this.store.analyticsLoading.value = false;
         }
+    }
+
+    defaultAnalyticsYear() {
+        const currentYear = String(new Date().getFullYear());
+        return this.store.data.years.find(year => String(year.name) === currentYear)
+            || this.currentYear()
+            || [...this.store.data.years].sort((left, right) => Number(right.name) - Number(left.name))[0]
+            || null;
     }
 
     dispose() { this.analyticsAbortController?.abort(); }

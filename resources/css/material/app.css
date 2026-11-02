@@ -334,6 +334,9 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .budget-suggestion span { display: block; color: #708caf; font-size: 11px; }
 .budget-suggestion strong { display: block; font-size: 13px; font-weight: 500; color: #4f75a2; margin-top: 5px; }
 .budget-suggestion .button { font-size: 11px; padding: 8px; }
+.budget-suggestion-copy { min-width: 0; }
+.analytics-year-picker { display: grid; flex: 0 0 112px; gap: 5px; color: #708caf; font-size: 10px; }
+.analytics-year-picker .custom-select-trigger { min-height: 34px; padding: 7px 9px; }
 .notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-radius: 13px; font-size: 12px; line-height: 1.8; margin-bottom: 18px; overflow-wrap: anywhere; }
 .notice.error { background: #fff0f0; border: 1px solid #f1d8db; color: #83586c; }
 .notice.success { background: #eaf6f5; border: 1px solid #d8ece8; color: #548386; }
