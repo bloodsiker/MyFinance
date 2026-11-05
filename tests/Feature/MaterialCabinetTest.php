@@ -89,6 +89,8 @@ class MaterialCabinetTest extends TestCase
         Transaction::create(['month_id' => $month->id, 'category_id' => $category->id, 'user_id' => $user->id, 'title' => 'Кава', 'amount' => 125.5, 'type' => 'card']);
         $this->getJson('/cabinet-api/data?month_id='.$month->id.'&title=125,50')->assertOk()
             ->assertJsonCount(1, 'transactions.items')->assertJsonPath('transactions.items.0.title', 'Кава');
+        $this->getJson('/cabinet-api/data?month_id='.$month->id.'&title=25')->assertOk()
+            ->assertJsonCount(1, 'transactions.items')->assertJsonPath('transactions.items.0.title', 'Кава');
         $this->getJson('/cabinet-api/data?month_id='.$month->id.'&title=10')->assertOk()
             ->assertJsonCount(22, 'transactions.items');
 

@@ -66,7 +66,11 @@ class FinanceCabinetController extends Controller
             $amount = str_replace([' ', ','], ['', '.'], $search);
             $query->where(function ($query) use ($search, $amount) {
                 $query->where('title', 'like', '%'.$search.'%');
-                if (is_numeric($amount)) $query->orWhereRaw('ABS(amount - ?) < 0.005', [(float) $amount]);
+                // Partial amount match: "25" finds 125 and 250.5; "125,50" is normalised to "125.5" as the DB prints doubles.
+                if (preg_match('/^\d+(\.\d*)?$/', $amount)) {
+                    if (str_contains($amount, '.')) $amount = rtrim(rtrim($amount, '0'), '.');
+                    if ($amount !== '') $query->orWhereRaw('CAST(amount AS CHAR) LIKE ?', ['%'.$amount.'%']);
+                }
             });
         }
         if (!empty($input['type'])) {
