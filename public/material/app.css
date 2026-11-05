@@ -637,3 +637,12 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .category-breakdown-tooltip strong { font-size: 15px; font-weight: 600; letter-spacing: -.2px; font-variant-numeric: tabular-nums; }
 .category-breakdown-tooltip strong small { font-size: 11px; font-weight: 400; opacity: .8; }
 .category-breakdown-tooltip-share { color: #b9cbe3; font-size: 10px; }
+
+/* Month page header: same category split under the subtitle */
+.page-intro > div:first-child { min-width: 0; flex: 1; }
+.month-intro-breakdown { max-width: 560px; margin-top: 4px; }
+.month-intro-breakdown .progress-caption { margin: 16px 0 8px; }
+.month-intro-breakdown .category-breakdown { height: 10px; margin-top: 0; }
+.month-intro-breakdown .category-breakdown-segment:first-child { border-radius: 5px 0 0 5px; }
+.month-intro-breakdown .category-breakdown-segment:last-child { border-radius: 0 5px 5px 0; }
+.month-intro-breakdown .category-breakdown-segment:only-child { border-radius: 5px; }
