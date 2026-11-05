@@ -207,8 +207,9 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .period-navigation { display: flex; align-items: flex-start; gap: 15px; margin: 0 0 24px; }
 
 .transactions-columns { display: grid; grid-template-columns: minmax(0,1fr) 290px; align-items: start; gap: 20px; }
-.transaction-panel { padding: 22px 0 0; overflow: visible; }
-.transaction-panel>.section-heading { padding: 0 22px; }
+.transaction-panel { padding: 0; overflow: visible; }
+.transaction-panel-head { padding-top: 22px; border-radius: 22px 22px 0 0; background: #fff; }
+.transaction-panel-head>.section-heading { padding: 0 22px; }
 .filters { display: flex; flex-wrap: wrap; gap: 9px; padding: 0 22px 20px; align-items: center; }
 .filters .filter-search { flex: 1 1 180px; }
 .filters .button { min-height: 38px; padding: 9px 15px; }
@@ -400,7 +401,7 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
     .period-card { padding: 19px; }.period-amount { font-size: 20px; }
     .panel { padding: 20px; }.recent-panel { padding: 20px 18px; }
     .transactions-columns { grid-template-columns: minmax(0,1fr) 250px; }
-    .transaction-panel { padding: 20px 0 0; }
+    .transaction-panel-head { padding-top: 20px; }
     .tasks-layout { grid-template-columns: 265px minmax(0,1fr); }.task-boards { grid-template-columns: 1fr; }
     .category-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
     .today-label { display: none; }
@@ -478,7 +479,7 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .month-transaction .row-actions .icon-button { background: white; border: 1px solid #e0eafa; width: 33px; height: 33px; }
 .month-transaction .row-actions .icon-button:hover { background: #dbeaff; }
 .month-transaction .row-actions .danger-text:hover { background: #fce8eb; }
-@media(max-width:1150px) { .transaction-panel>.section-heading { flex-wrap: wrap; }.transaction-heading-actions { margin-left: auto; } }
+@media(max-width:1150px) { .transaction-panel-head>.section-heading { flex-wrap: wrap; }.transaction-heading-actions { margin-left: auto; } }
 @media(max-width:600px) {
     .month-transaction-list { padding: 0 12px 12px; gap: 9px; }
     .month-transaction { padding: 14px; gap: 11px; align-items: flex-start; flex-wrap: wrap; }
@@ -652,3 +653,8 @@ input::placeholder, textarea::placeholder { color: #8193ac; }
 .custom-select-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; box-shadow: inset 0 0 0 1px #1f355026; }
 .custom-select-swatch.empty { background: repeating-linear-gradient(135deg, #f1f5fb 0 3px, #dbe5f2 3px 5px); }
 .custom-select-trigger .custom-select-swatch { margin-left: auto; margin-right: -4px; }
+
+/* Month page: heading and filters stay pinned while the list scrolls */
+.transaction-panel-head.sticky { position: sticky; top: 0; z-index: 40; margin-bottom: 4px; transition: box-shadow .18s, border-radius .18s; }
+.transaction-panel-head.sticky.is-stuck { border-radius: 0 0 16px 16px; box-shadow: 0 10px 22px -12px #254b7b40; }
+@media(max-height:560px) { .transaction-panel-head.sticky { position: static; } }
