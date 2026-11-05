@@ -105,7 +105,8 @@ class MaterialCabinetTest extends TestCase
         $this->getJson('/cabinet-api/data?month_id='.$month->id)->assertOk()
             ->assertJsonPath('categories.0.color', '#ffaa00')->assertJsonPath('transactions.items.0.category_color', '#ffaa00')
             ->assertJsonPath('months.0.categories.0.name', 'Кафе')->assertJsonPath('months.0.categories.0.color', '#ffaa00')
-            ->assertJsonPath('months.0.categories.0.spent', 90);
+            ->assertJsonPath('months.0.categories.0.spent', 90)
+            ->assertJsonPath('years.0.categories.0.name', 'Кафе')->assertJsonPath('years.0.categories.0.spent', 90);
         $this->putJson('/cabinet-api/categories/'.$id, ['name' => 'Кафе', 'color' => ''])->assertOk();
         $this->assertNull(Category::find($id)->color);
     }

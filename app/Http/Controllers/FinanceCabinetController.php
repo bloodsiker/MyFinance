@@ -52,7 +52,10 @@ class FinanceCabinetController extends Controller
         });
         $years = Year::orderByDesc('name')->get()->map(function ($year) use ($months) {
             $items = $months->where('year_id', $year->id);
-            return ['id' => $year->id, 'name' => $year->name, 'budget' => $items->sum('budget'), 'spent' => $items->sum('spent')];
+            $categories = $items->flatMap(fn ($month) => $month['categories'])->groupBy('category_id')
+                ->map(fn ($rows) => array_merge($rows->first(), ['spent' => $rows->sum('spent')]))->sortByDesc('spent')->values();
+            return ['id' => $year->id, 'name' => $year->name, 'budget' => $items->sum('budget'), 'spent' => $items->sum('spent'),
+                'categories' => $categories];
         });
         $query = Transaction::with(['category', 'user', 'month']);
         foreach (['month_id', 'category_id', 'user_id'] as $field) {
