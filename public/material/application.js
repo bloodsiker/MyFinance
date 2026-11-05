@@ -796,7 +796,7 @@ class CabinetViewModel {
             loadRates: this.loadRates.bind(this), recalculate: this.recalculate.bind(this),
             openTelegram: this.openTelegram.bind(this), toggleTelegramNotifications: this.toggleTelegramNotifications.bind(this),
             logout: this.logout.bind(this), submitAuth: this.submitAuth.bind(this),
-            money: this.domain.money, progress: this.domain.progress, today: this.domain.dateKey(new Date()),
+            money: this.domain.money, progress: this.domain.progress, breakdown: this.domain.breakdown, today: this.domain.dateKey(new Date()),
             dateLabel: value => new Intl.DateTimeFormat('uk-UA', {
                 timeZone: this.bootstrap.timezone || 'UTC', day: '2-digit', month: 'short', year: 'numeric',
                 hour: '2-digit', minute: '2-digit',

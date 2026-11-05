@@ -94,3 +94,20 @@ test('transaction edit dates keep the original cabinet clock independently of br
     assert.equal(D.localTime(new Date('2026-10-23T21:24:00Z'), 'UTC'), '2026-10-23T21:24');
     assert.equal(D.localTime(new Date('2026-12-23T22:24:00Z'), 'UTC'), '2026-12-23T22:24');
 });
+
+test('category breakdown splits month spending into proportional coloured segments', () => {
+    const items = D.breakdown({ categories: [
+        { category_id: 1, name: 'Кафе', color: '#ffaa00', spent: 300 },
+        { category_id: 2, name: null, color: null, spent: 100 },
+        { category_id: 3, name: 'Порожня', color: '#000000', spent: 0 },
+    ] });
+    assert.equal(items.length, 2);
+    assert.equal(items[0].percent, 75);
+    assert.equal(items[0].color, '#ffaa00');
+    assert.equal(items[0].align, 'center');
+    assert.equal(items[1].percent, 25);
+    assert.equal(items[1].name, 'Без категорії');
+    assert.match(items[1].color, /^#[0-9a-f]{6}$/);
+    assert.equal(items[1].align, 'end');
+    assert.equal(D.breakdown({}).length, 0);
+});

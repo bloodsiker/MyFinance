@@ -47,6 +47,27 @@
             }), { budget: 0, spent: 0 });
         }
 
+        /** Spending share per category for a period card: segments sum to 100%, uncoloured categories get a stable soft tone. */
+        static breakdown(row) {
+            const fallback = ['#9db4d3', '#b7c6db', '#8aa1c1', '#c5d2e3', '#a9bcd6', '#7f97b8'];
+            const items = (row?.categories || []).filter(item => Number(item.spent) > 0);
+            const total = items.reduce((sum, item) => sum + Number(item.spent), 0);
+            let offset = 0;
+            return items.map((item, index) => {
+                const percent = total > 0 ? Number(item.spent) / total * 100 : 0;
+                const center = offset + percent / 2;
+                offset += percent;
+                return {
+                    key: item.category_id ?? `none-${index}`,
+                    name: item.name || 'Без категорії',
+                    color: item.color || fallback[Math.abs(Number(item.category_id) || index) % fallback.length],
+                    spent: Number(item.spent),
+                    percent,
+                    align: center < 22 ? 'start' : center > 78 ? 'end' : 'center',
+                };
+            });
+        }
+
         static progress(row) {
             return row.budget > 0 ? Math.max(0, Math.min(100, row.spent / row.budget * 100)) : row.spent > 0 ? 100 : 0;
         }

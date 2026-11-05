@@ -40,9 +40,15 @@ class FinanceCabinetController extends Controller
         ]);
         $budgets = MonthCategory::selectRaw('month_id, SUM(budget) as total')->groupBy('month_id')->pluck('total', 'month_id');
         $spent = Transaction::selectRaw('month_id, SUM(amount) as total')->groupBy('month_id')->pluck('total', 'month_id');
-        $months = Month::orderByRaw('CAST(number AS UNSIGNED)')->get()->map(function ($month) use ($budgets, $spent) {
+        $categoryNames = Category::get(['id', 'name', 'color'])->keyBy('id');
+        $breakdowns = Transaction::selectRaw('month_id, category_id, SUM(amount) as total')->groupBy('month_id', 'category_id')->get()
+            ->groupBy('month_id')->map(fn ($rows) => $rows->filter(fn ($row) => (float) $row->total > 0)->sortByDesc('total')->values()
+                ->map(fn ($row) => ['category_id' => $row->category_id, 'name' => optional($categoryNames[$row->category_id] ?? null)->name,
+                    'color' => self::hexColor(optional($categoryNames[$row->category_id] ?? null)->color), 'spent' => (float) $row->total]));
+        $months = Month::orderByRaw('CAST(number AS UNSIGNED)')->get()->map(function ($month) use ($budgets, $spent, $breakdowns) {
             return ['id' => $month->id, 'year_id' => $month->year_id, 'name' => $month->name, 'number' => (int) $month->number,
-                'budget' => (float) ($budgets[$month->id] ?? 0), 'spent' => (float) ($spent[$month->id] ?? 0)];
+                'budget' => (float) ($budgets[$month->id] ?? 0), 'spent' => (float) ($spent[$month->id] ?? 0),
+                'categories' => $breakdowns[$month->id] ?? []];
         });
         $years = Year::orderByDesc('name')->get()->map(function ($year) use ($months) {
             $items = $months->where('year_id', $year->id);
