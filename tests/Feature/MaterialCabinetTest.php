@@ -86,7 +86,26 @@ class MaterialCabinetTest extends TestCase
             ->assertJsonPath('transactions.last_page', 1)->assertJsonPath('transactions.spent', 220);
         $this->getJson('/cabinet-api/data?month_id='.$month->id.'&title=Legacy%2021')->assertOk()
             ->assertJsonCount(1, 'transactions.items')->assertJsonPath('transactions.spent', 10);
+        Transaction::create(['month_id' => $month->id, 'category_id' => $category->id, 'user_id' => $user->id, 'title' => 'Кава', 'amount' => 125.5, 'type' => 'card']);
+        $this->getJson('/cabinet-api/data?month_id='.$month->id.'&title=125,50')->assertOk()
+            ->assertJsonCount(1, 'transactions.items')->assertJsonPath('transactions.items.0.title', 'Кава');
+        $this->getJson('/cabinet-api/data?month_id='.$month->id.'&title=10')->assertOk()
+            ->assertJsonCount(22, 'transactions.items');
 
+    }
+
+    public function test_category_color_is_saved_and_returned_with_transactions(): void
+    {
+        $user = $this->user();
+        $this->actingAs($user);
+        $month = $this->month();
+        $id = $this->postJson('/cabinet-api/categories', ['name' => 'Кафе', 'color' => '#FFAA00'])->assertCreated()->json('id');
+        $this->postJson('/cabinet-api/categories', ['name' => 'Bad', 'color' => 'red'])->assertStatus(422);
+        Transaction::create(['month_id' => $month->id, 'category_id' => $id, 'user_id' => $user->id, 'title' => 'Лате', 'amount' => 90, 'type' => 'card']);
+        $this->getJson('/cabinet-api/data?month_id='.$month->id)->assertOk()
+            ->assertJsonPath('categories.0.color', '#ffaa00')->assertJsonPath('transactions.items.0.category_color', '#ffaa00');
+        $this->putJson('/cabinet-api/categories/'.$id, ['name' => 'Кафе', 'color' => ''])->assertOk();
+        $this->assertNull(Category::find($id)->color);
     }
 
     public function test_tasks_support_any_existing_user_without_fixed_ids(): void

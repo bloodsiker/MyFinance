@@ -22,7 +22,7 @@ class DialogController {
         store.formError.value = '';
         store.analytics.value = null;
         if (kind === 'year') Object.assign(store.form, { year: new Date().getFullYear() });
-        if (kind === 'category') Object.assign(store.form, { name: '' }, row);
+        if (kind === 'category') Object.assign(store.form, { name: '', color: '' }, row, { color: row.color || '' });
         if (kind === 'userTelegram') Object.assign(store.form, { id: row.id, name: row.name, telegram_id: row.telegram_id || '' });
         if (kind === 'transaction') Object.assign(store.form, {
             month_id: this.currentMonth()?.id,

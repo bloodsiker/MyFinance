@@ -52,7 +52,14 @@ class FinanceCabinetController extends Controller
         foreach (['month_id', 'category_id', 'user_id'] as $field) {
             if (!empty($input[$field])) $query->where($field, $input[$field]);
         }
-        if (!empty($input['title'])) $query->where('title', 'like', '%'.$input['title'].'%');
+        if (!empty($input['title'])) {
+            $search = trim($input['title']);
+            $amount = str_replace([' ', ','], ['', '.'], $search);
+            $query->where(function ($query) use ($search, $amount) {
+                $query->where('title', 'like', '%'.$search.'%');
+                if (is_numeric($amount)) $query->orWhereRaw('ABS(amount - ?) < 0.005', [(float) $amount]);
+            });
+        }
         if (!empty($input['type'])) {
             $input['type'] === 'card' ? $query->where('type', 'card') : $query->whereIn('type', ['cash', 'cache']);
         }
@@ -73,7 +80,7 @@ class FinanceCabinetController extends Controller
         }
         $categorySpent = $monthId ? Transaction::where('month_id', $monthId)->selectRaw('category_id, SUM(amount) as total')->groupBy('category_id')->pluck('total', 'category_id') : collect();
         $monthBudgets = $monthId ? MonthCategory::with('category')->where('month_id', $monthId)->get()->map(function ($row) use ($categorySpent) {
-            return ['id' => $row->id, 'category_id' => $row->category_id, 'name' => optional($row->category)->name,
+            return ['id' => $row->id, 'category_id' => $row->category_id, 'name' => optional($row->category)->name, 'color' => self::hexColor(optional($row->category)->color),
                 'budget' => (float) $row->budget, 'spent' => (float) ($categorySpent[$row->category_id] ?? 0)];
         }) : collect();
         $date = $input['date'] ?? now()->toDateString();
@@ -83,11 +90,19 @@ class FinanceCabinetController extends Controller
                 'task_date' => $task->task_date, 'task_time' => $task->task_time ? $task->task_time->format('H:i') : ''];
         });
         return response()->json([
-            'years' => $years, 'months' => $months, 'categories' => Category::orderBy('name')->get(['id', 'name']),
+            'years' => $years, 'months' => $months, 'categories' => Category::orderBy('name')->get(['id', 'name', 'color'])->map(fn ($category) => ['id' => $category->id, 'name' => $category->name, 'color' => self::hexColor($category->color)]),
             'users' => User::orderBy('name')->get(['id', 'name']), 'budgets' => $monthBudgets, 'tasks' => $tasks,
             'transactions' => $transactions,
             'recent' => Transaction::with(['category', 'user', 'month'])->orderByDesc('created_at')->limit(7)->get()->map(fn ($row) => $this->transactionData($row)),
         ]);
+    }
+
+    /** Old rows may hold any string in categories.color; only #rgb/#rrggbb reach the UI. */
+    private static function hexColor(?string $color): ?string
+    {
+        $color = strtolower(trim((string) $color));
+        if (preg_match('/^#([0-9a-f])([0-9a-f])([0-9a-f])$/', $color, $m)) return '#'.$m[1].$m[1].$m[2].$m[2].$m[3].$m[3];
+        return preg_match('/^#[0-9a-f]{6}$/', $color) ? $color : null;
     }
 
     private function transactionData(Transaction $row): array
@@ -96,7 +111,7 @@ class FinanceCabinetController extends Controller
             'user_id' => $row->user_id, 'title' => $row->title, 'amount' => (float) $row->amount,
             'type' => $row->type === 'card' ? 'card' : 'cash', 'created_at' => $row->created_at->toIso8601String(),
             'created_at_local' => $row->created_at->copy()->setTimezone(config('app.timezone', 'UTC'))->format('Y-m-d\TH:i'),
-            'category' => optional($row->category)->name, 'author' => optional($row->user)->name];
+            'category' => optional($row->category)->name, 'category_color' => self::hexColor(optional($row->category)->color), 'author' => optional($row->user)->name];
     }
 
     public function year(Request $request)
@@ -114,7 +129,8 @@ class FinanceCabinetController extends Controller
 
     public function category(Request $request, ?int $id = null)
     {
-        $data = $request->validate(['name' => 'required|string|max:255']);
+        $data = $request->validate(['name' => 'required|string|max:255', 'color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/']]);
+        $data['color'] = isset($data['color']) ? strtolower($data['color']) : null;
         if ($id) {
             $category = Category::findOrFail($id);
             $category->update($data);
